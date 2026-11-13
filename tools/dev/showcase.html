@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vorschau Animationen</title>
+<link rel="stylesheet" href="../../css/app.css">
+<style>
+  body { background: #0D1A2E; color: #F3EEE4; padding: 16px; }
+  h1 { font-size: 22px; margin: 8px 0 16px; }
+  h2 { font-size: 15px; color: #8C93A3; font-weight: 400; margin: 20px 0 8px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .tile { display: flex; flex-direction: column; gap: 6px; }
+  .tile .levelup-fig { width: 100%; aspect-ratio: 168 / 140; }
+  .tile .levelup-fig svg { width: 100%; height: 100%; display: block; }
+  .tile span { font-size: 12px; color: #C4C6CC; }
+  .exv-stage { aspect-ratio: 168 / 140; }
+  .idols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .idols img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 20%; border-radius: 12px; animation: idol-in 0.6s var(--ease); }
+</style>
+</head>
+<body>
+<h1>Neue Animationen und Grafiken</h1>
+
+<h2>Feiern mit dem gezeichneten Spieler (wenn keine eigenen Bilder da sind)</h2>
+<div class="row3">
+  <div class="tile"><div class="levelup-fig" id="c1"></div><span>Level-Aufstieg: Anlauf, Sprung, Jubelpose</span></div>
+  <div class="tile"><div class="levelup-fig" id="c2"></div><span>Abzeichen: Freistoß</span></div>
+  <div class="tile"><div class="levelup-fig" id="c3"></div><span>Perfekter Tag: Kopfball</span></div>
+</div>
+
+<h2>Feiern mit deinen Vorbild-Bildern</h2>
+<div class="idols" id="idols"></div>
+
+<h2>Übungsgrafiken im Workout (Auswahl)</h2>
+<div class="row3">
+  <div class="tile"><div class="exv-stage" id="e1"></div><span>World's Greatest Stretch</span></div>
+  <div class="tile"><div class="exv-stage" id="e2"></div><span>Box Jumps</span></div>
+  <div class="tile"><div class="exv-stage" id="e3"></div><span>Eccentric Pushups</span></div>
+</div>
+
+<script type="module">
+import { stage, animate } from '../../js/figure.js';
+import { CELEBRATE, FREEKICK, HEADER, LIB, sequence } from '../../js/exercises.js';
+const put = (id, seq, opts) => { const el = document.getElementById(id); el.innerHTML = stage(); animate(el.querySelector('svg'), seq, opts); };
+put('c1', CELEBRATE, { player: true });
+put('c2', FREEKICK, { player: true });
+put('c3', HEADER, { player: true });
+put('e1', sequence(LIB["rdl to world's greatest stretch"]));
+put('e2', sequence(LIB['box jumps']));
+put('e3', sequence(LIB['eccentric pushups']));
+for (const f of ['1.jpg', '13.webp']) {
+  const img = document.createElement('img');
+  img.src = `../../_private/vorbild/${f}`;
+  img.alt = 'Vorbild';
+  document.getElementById('idols').appendChild(img);
+}
+</script>
+</body>
+</html>
