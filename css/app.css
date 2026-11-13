@@ -770,3 +770,4 @@ details.card > summary { color: var(--ink-2); }
 .pl-far { opacity: 0.72; }
 .pl-num { font: 600 8px var(--font); fill: #24508A; text-anchor: middle; dominant-baseline: central; }
 .pl-shadow { fill: rgba(0, 0, 0, 0.25); }
+.levelup-img img, .role-img { object-position: center 20%; }
