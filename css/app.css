@@ -765,3 +765,8 @@ details.card > summary { color: var(--ink-2); }
 .role.with-img { display: grid; grid-template-columns: 88px 1fr; column-gap: 14px; align-items: start; }
 .role.with-img > *:not(.role-img) { grid-column: 2; }
 .role-img { grid-row: 1 / span 3; width: 88px; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 10px; background: var(--surface-2); }
+/* Illustrated player */
+.levelup-fig { --pl-shirt: #F3EEE4; --pl-shorts: #0D1A2E; --pl-sock: #F3EEE4; --pl-boot: #0D1A2E; --pl-skin: #C89470; --pl-hair: #2A1D16; }
+.pl-far { opacity: 0.72; }
+.pl-num { font: 600 8px var(--font); fill: #24508A; text-anchor: middle; dominant-baseline: central; }
+.pl-shadow { fill: rgba(0, 0, 0, 0.25); }

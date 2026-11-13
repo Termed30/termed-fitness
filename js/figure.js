@@ -93,6 +93,10 @@ function drawProps({ pts, pose }) {
 }
 
 export function figureSvg(p) {
+  return figureSvgPlain(p);
+}
+
+function figureSvgPlain(p) {
   const s = solve(p);
   const { pts } = s;
   const far = [
@@ -106,6 +110,55 @@ export function figureSvg(p) {
     `<circle class="fx-head" cx="${f(pts.hd[0])}" cy="${f(pts.hd[1])}" r="${L.head}"/>`,
   ];
   return drawProps(s) + far.join('') + near.join('');
+}
+
+// Illustrated player for celebrations: jersey with number 7, shorts, socks, boots
+const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+const seg = (a, b, w, color, cap = 'round') => `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" stroke="${color}" stroke-width="${w}" stroke-linecap="${cap}"/>`;
+
+function playerLimbs(pts, side) {
+  const hip = pts.hip; const sh = pts.sh;
+  const k = pts[`k${side}`]; const an = pts[`an${side}`]; const t = pts[`t${side}`];
+  const e = pts[`e${side}`]; const w = pts[`w${side}`];
+  const leg = [
+    seg(hip, k, 7.5, 'var(--pl-skin)'),
+    seg(lerp(k, an, 0.35), an, 7, 'var(--pl-sock)'),
+    seg(an, t, 5.5, 'var(--pl-boot)'),
+    seg(hip, lerp(hip, k, 0.5), 12, 'var(--pl-shorts)'),
+  ].join('');
+  const arm = [
+    seg(sh, e, 6, 'var(--pl-skin)'),
+    seg(e, w, 5.5, 'var(--pl-skin)'),
+    seg(sh, lerp(sh, e, 0.45), 8.5, 'var(--pl-shirt)'),
+  ].join('');
+  return { leg, arm };
+}
+
+export function playerSvg(p) {
+  const s = solve(p);
+  const { pts, pose } = s;
+  const far = playerLimbs(pts, 2);
+  const near = playerLimbs(pts, 1);
+  const mid = lerp(pts.hip, pts.sh, 0.5);
+  const neck = lerp(pts.sh, pts.hd, 0.45);
+  const shadowX = (pts.an1[0] + pts.an2[0]) / 2;
+  const lift = Math.max(0, GROUND - Math.max(pts.an1[1], pts.an2[1], pts.t1[1], pts.t2[1]));
+  // Hair sits on the side of the head that points away from the torso
+  const dir = [pts.hd[0] - pts.sh[0], pts.hd[1] - pts.sh[1]];
+  const len = Math.hypot(dir[0], dir[1]) || 1;
+  const hair = [pts.hd[0] + (dir[0] / len) * 2, pts.hd[1] + (dir[1] / len) * 2];
+  return `
+    <ellipse cx="${f(shadowX)}" cy="${GROUND + 1}" rx="${f(Math.max(8, 18 - lift * 0.4))}" ry="2.2" class="pl-shadow"/>
+    ${drawProps(s)}
+    <g class="pl-far">${far.leg}${far.arm}</g>
+    ${seg(pts.hip, pts.sh, 16, 'var(--pl-shirt)')}
+    ${seg(pts.hip, lerp(pts.hip, pts.sh, 0.12), 15, 'var(--pl-shorts)', 'butt')}
+    <text x="${f(mid[0])}" y="${f(mid[1])}" class="pl-num" transform="rotate(${f(pose.t)} ${f(mid[0])} ${f(mid[1])})">7</text>
+    ${near.leg}
+    ${seg(pts.sh, neck, 5, 'var(--pl-skin)')}
+    <circle cx="${f(hair[0])}" cy="${f(hair[1])}" r="${L.head + 0.6}" fill="var(--pl-hair)"/>
+    <circle cx="${f(pts.hd[0])}" cy="${f(pts.hd[1])}" r="${L.head - 0.4}" fill="var(--pl-skin)"/>
+    ${near.arm}`;
 }
 
 // ---- Animation between poses
@@ -125,9 +178,10 @@ function mix(a, b, k) {
 const running = new WeakMap();
 
 // seq: [{pose, hold}] ; plays forward through the list and loops
-export function animate(svg, seq, { move = 650, onFrame } = {}) {
+export function animate(svg, seq, { move = 650, onFrame, player = false } = {}) {
   stop(svg);
   const g = svg.querySelector('.fx-fig');
+  const figureSvg = player ? playerSvg : figureSvgPlain;
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (reduce || seq.length < 2) {
     g.innerHTML = figureSvg(seq[0].pose);

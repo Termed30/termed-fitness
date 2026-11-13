@@ -219,7 +219,7 @@ function showNext() {
   };
   document.body.appendChild(el);
   if (idol) hydratePhotos(el);
-  else animate(el.querySelector('svg'), c.seq);
+  else animate(el.querySelector('svg'), c.seq, { player: true });
 }
 
 export function levelUp(lv) {
