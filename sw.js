@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Videos always come from the network.
-const VERSION = 'termed-v8';
+const VERSION = 'termed-v9';
 const SHELL = [
   './',
   'index.html',

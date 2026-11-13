@@ -283,7 +283,7 @@ export function renderMore(root, params = {}) {
 
     <div class="section-head" id="idols"><h2>Vorbild-Bilder</h2><span class="muted small">${S.idols.length} Bilder</span></div>
     <div class="card">
-      <p class="small">Wähl Bilder deines Vorbilds aus deiner Fotomediathek, auch Memes. Die App zeigt sie bei Level-Aufstieg, Abzeichen, perfektem Tag und in der Vorbild-Karte. Sie bleiben nur auf diesem Handy.</p>
+      <p class="small">Wähl Bilder deines Vorbilds aus deiner Fotomediathek, auch Memes, mit mindestens 600 Pixeln an der kürzeren Seite. Die App zeigt sie bei Level-Aufstieg, Abzeichen, perfektem Tag und in der Vorbild-Karte. Sie bleiben nur auf diesem Handy.</p>
       ${S.idols.length ? `<div class="photo-grid">${S.idols.map((p) => `<figure><img data-photo="${p.id}" alt="Vorbild-Bild"><button class="btn-icon sm del" data-act="idol-del" data-id="${p.id}" aria-label="Bild entfernen">${icon('trash-2', 14)}</button></figure>`).join('')}</div>` : ''}
       <label class="btn secondary">${icon('image')} Bilder auswählen<input type="file" accept="image/*" multiple id="idol-add" hidden></label>
     </div>
@@ -358,10 +358,21 @@ export function renderMore(root, params = {}) {
   if (idolAdd) idolAdd.onchange = async () => {
     const files = [...(idolAdd.files || [])].slice(0, 30);
     if (!files.length) return;
-    toast(files.length === 1 ? 'Bild wird gespeichert' : `${files.length} Bilder werden gespeichert`);
+    toast(files.length === 1 ? 'Bild wird geprüft' : `${files.length} Bilder werden geprüft`);
+    let saved = 0;
+    let small = 0;
     for (const f of files) {
-      try { await savePhoto(f, { kind: 'idol' }); } catch (e) { toast('Ein Bild konnte ich nicht lesen'); }
+      try {
+        // Only sharp pictures: at least 600 px on the shorter side
+        const bmp = await createImageBitmap(f);
+        const minSide = Math.min(bmp.width, bmp.height);
+        bmp.close?.();
+        if (minSide < 600) { small++; continue; }
+        await savePhoto(f, { kind: 'idol' });
+        saved++;
+      } catch (e) { small++; }
     }
+    toast(small ? `${saved} gespeichert, ${small} zu klein oder unscharf (unter 600 Pixel)` : `${saved} Bilder gespeichert`);
     idolAdd.value = '';
     renderMore(root);
     document.getElementById('idols')?.scrollIntoView({ block: 'start' });
