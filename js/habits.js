@@ -305,7 +305,7 @@ const ROLE = {
   sleep: 'Ronaldo hat mit dem Schlafcoach Nick Littlehales zusammengearbeitet. Feste Schlafzeiten gehören für ihn zum Training wie der Platz.',
   water: 'Bei der EM 2021 schob Ronaldo in einer Pressekonferenz zwei Cola-Flaschen zur Seite und hielt eine Flasche Wasser hoch.',
   protein: 'Ronaldo trinkt keinen Alkohol und setzt auf viel Fisch, mageres Fleisch und Gemüse, verteilt auf mehrere Mahlzeiten am Tag.',
-  stretch: 'Zu Ronaldos Erholung gehören laut Berichten Eisbäder und eine Kältekammer nach harten Einheiten. Erholung ist bei ihm Pflicht, keine Kür.',
+  stretch: 'Zu Ronaldos Erholung gehören laut Berichten Eisbäder und eine Kältekammer nach harten Einheiten. Erholung gehört für ihn fest zum Plan.',
   ball: 'Frühere Mitspieler bei Manchester United erzählen, dass Ronaldo nach dem Mannschaftstraining oft allein weiter Freistöße geübt hat.',
   goal: 'Ronaldo debütierte mit 17 für Sporting Lissabon. Noch mit 40 spielte er auf Profiniveau, weil er seine Routine jeden Tag durchzieht.',
 };
