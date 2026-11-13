@@ -15,6 +15,7 @@ import { figurePanel, mountPanels } from './exview.js';
 import { readPdf } from './importer.js';
 import { habitRowsMeta, dayScore, toggleHabit, levelOf, totalXp, seasonPath, streakLine, checkLevelUp, proteinEaten, ACTIVITY_HABIT, checkNewBadges, checkPerfectDay, XP, roleModel } from './habits.js';
 import { stage, animate } from './figure.js';
+import { hydratePhotos } from './photos.js';
 import { CELEBRATE, FREEKICK, HEADER } from './exercises.js';
 import { setPendingImport } from './views.js';
 
@@ -154,8 +155,10 @@ function gameCard() {
 
 function roleCard() {
   const r = roleModel();
+  const idol = S.idols.length ? S.idols[Number(isoDate().replace(/-/g, '')) % S.idols.length] : null;
   return `
-  <article class="card role">
+  <article class="card role${idol ? ' with-img' : ''}">
+    ${idol ? `<img class="role-img" data-photo="${idol.id}" alt="Vorbild">` : ''}
     <span class="coach-mark">Vorbild · Cristiano Ronaldo</span>
     ${r.quote ? `<p class="role-quote">„${esc(r.quote.text)}“</p><span class="muted small">${esc(r.quote.by)}</span>`
       : `<p>${esc(r.text)}</p><span class="muted small">Passt zu deinem Habit: ${esc(r.habit.title)}</span>`}
@@ -197,11 +200,12 @@ function celebrate({ kicker, title, text, seq }) {
 function showNext() {
   const c = celebrations[0];
   if (!c) return;
+  const idol = S.idols.length ? S.idols[Math.floor(Math.random() * S.idols.length)] : null;
   const el = document.createElement('div');
   el.className = 'levelup';
   el.setAttribute('role', 'dialog');
   el.innerHTML = `<div class="levelup-card">
-    <div class="levelup-fig">${stage()}</div>
+    ${idol ? `<div class="levelup-img"><img data-photo="${idol.id}" data-size="blob" alt="Vorbild"></div>` : `<div class="levelup-fig">${stage()}</div>`}
     <span class="muted small">${esc(c.kicker)}</span>
     <h2>${esc(c.title)}</h2>
     <p class="muted">${esc(c.text)}</p>
@@ -214,7 +218,8 @@ function showNext() {
     showNext();
   };
   document.body.appendChild(el);
-  animate(el.querySelector('svg'), c.seq);
+  if (idol) hydratePhotos(el);
+  else animate(el.querySelector('svg'), c.seq);
 }
 
 export function levelUp(lv) {
@@ -357,6 +362,7 @@ export function renderHome(root) {
     </a>` : `<a class="card link-card" href="#/mehr"><span>Ernährungsplan hochladen</span>${icon('chevron-right', 20)}</a>`}
   </section>`;
 
+  hydratePhotos(root);
   checkCelebrations();
   const nextPdf = root.querySelector('#next-pdf');
   if (nextPdf) nextPdf.onchange = async () => {

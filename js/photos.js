@@ -35,7 +35,7 @@ export async function savePhoto(file, meta = {}) {
   const rec = { id: uid(), takenAt: Date.now(), date: isoDate(), ...meta, blob, thumb };
   await db.put('photos', rec);
   const { blob: _b, thumb: _t, ...m } = rec;
-  S.photos.push(m);
+  if (m.kind === 'idol') S.idols.push(m); else S.photos.push(m);
   try { await navigator.storage?.persist?.(); } catch (e) { /* optional */ }
   return rec.id;
 }
@@ -53,6 +53,7 @@ export async function photoUrl(id, which = 'thumb') {
 export async function deletePhoto(id) {
   await db.del('photos', id);
   S.photos = S.photos.filter((p) => p.id !== id);
+  S.idols = S.idols.filter((p) => p.id !== id);
   for (const w of ['thumb', 'blob']) {
     const k = `${id}:${w}`;
     if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); }

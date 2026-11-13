@@ -281,6 +281,13 @@ export function renderMore(root, params = {}) {
       <div class="row"><input class="grow hb-new" id="hb-new" maxlength="48" placeholder="Eigener Habit, z. B. 10 Minuten Mobility"><button class="btn secondary" data-act="hb-add">${icon('plus')} Dazu</button></div>
     </div>
 
+    <div class="section-head" id="idols"><h2>Vorbild-Bilder</h2><span class="muted small">${S.idols.length} Bilder</span></div>
+    <div class="card">
+      <p class="small">Wähl Bilder deines Vorbilds aus deiner Fotomediathek, auch Memes. Die App zeigt sie bei Level-Aufstieg, Abzeichen, perfektem Tag und in der Vorbild-Karte. Sie bleiben nur auf diesem Handy.</p>
+      ${S.idols.length ? `<div class="photo-grid">${S.idols.map((p) => `<figure><img data-photo="${p.id}" alt="Vorbild-Bild"><button class="btn-icon sm del" data-act="idol-del" data-id="${p.id}" aria-label="Bild entfernen">${icon('trash-2', 14)}</button></figure>`).join('')}</div>` : ''}
+      <label class="btn secondary">${icon('image')} Bilder auswählen<input type="file" accept="image/*" multiple id="idol-add" hidden></label>
+    </div>
+
     <div class="section-head"><h2>Profil</h2></div>
     <div class="card form">
       <label class="field"><span>Vorname</span><input id="s-name" value="${esc(S.settings.name)}" autocomplete="given-name"></label>
@@ -346,6 +353,19 @@ export function renderMore(root, params = {}) {
     }
     renderMore(root);
   };
+  hydratePhotos(root);
+  const idolAdd = root.querySelector('#idol-add');
+  if (idolAdd) idolAdd.onchange = async () => {
+    const files = [...(idolAdd.files || [])].slice(0, 30);
+    if (!files.length) return;
+    toast(files.length === 1 ? 'Bild wird gespeichert' : `${files.length} Bilder werden gespeichert`);
+    for (const f of files) {
+      try { await savePhoto(f, { kind: 'idol' }); } catch (e) { toast('Ein Bild konnte ich nicht lesen'); }
+    }
+    idolAdd.value = '';
+    renderMore(root);
+    document.getElementById('idols')?.scrollIntoView({ block: 'start' });
+  };
   const stretchSrc = root.querySelector('#stretch-src');
   if (stretchSrc) stretchSrc.onchange = async () => {
     const f = stretchSrc.files?.[0];
@@ -384,6 +404,7 @@ export function renderMore(root, params = {}) {
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;
+    if (act === 'idol-del') { await deletePhoto(el.dataset.id); renderMore(root); document.getElementById('idols')?.scrollIntoView({ block: 'start' }); return; }
     if (act === 'hb-on') { await setHabitActive(el.dataset.id, el.checked); const c = root.querySelector('#habit-manage .muted'); if (c) c.textContent = `${habitList().length} aktiv`; return; }
     if (act === 'hb-del') { if (confirm('Diesen Habit löschen? Abgehakte Tage bleiben gespeichert.')) { await removeOwnHabit(el.dataset.id); renderMore(root); } return; }
     if (act === 'hb-add') {

@@ -8,7 +8,8 @@ export const S = {
   nutrition: null,
   sessions: [],
   daily: {},
-  photos: [], // metadata only: {id, date, sessionId, week}
+  photos: [], // progress photos, metadata only: {id, date, sessionId, week}
+  idols: [], // role model pictures the user picked, metadata only
   active: null, // workout in progress
   stretchLib: null, // stretches taken over from another plan
 };
@@ -33,7 +34,9 @@ export async function loadState() {
   S.sessions = ((await db.all('sessions')) || []).sort((a, b) => a.startedAt - b.startedAt);
   S.daily = Object.fromEntries(((await db.all('daily')) || []).map((d) => [d.date, d]));
   const photos = (await db.all('photos')) || [];
-  S.photos = photos.map(({ blob, thumb, ...meta }) => meta).sort((a, b) => a.takenAt - b.takenAt);
+  const metas = photos.map(({ blob, thumb, ...meta }) => meta).sort((a, b) => a.takenAt - b.takenAt);
+  S.photos = metas.filter((p) => p.kind !== 'idol');
+  S.idols = metas.filter((p) => p.kind === 'idol');
 }
 
 export const saveSettings = () => db.put('kv', S.settings, 'settings');
