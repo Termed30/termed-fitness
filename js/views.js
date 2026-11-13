@@ -11,6 +11,10 @@ import { readPdf, applyImport, defaultStart } from './importer.js';
 import { savePhoto, hydratePhotos, deletePhoto } from './photos.js';
 import { db } from './db.js';
 import { weekLoad, goalCounts, weekPlan, byId, stretchExercises } from './activities.js';
+import {
+  seasonPath, badges, habitList, habitDone, streak, bestStreak, levelOf, totalXp, LEVELS, XP,
+  allHabitsForSettings, setHabitActive, addOwnHabit, removeOwnHabit,
+} from './habits.js';
 
 const KIND_SHORT = { warmup: 'Warm-up', warmup2: 'Cardio', plyo: 'Plyos', circuit: 'Zirkel', core: 'Core', finisher: 'Finisher', breathing: 'Atmung', power: 'Power', strength: 'Kraft', complex: 'Komplex', stretch: 'Stretching', main: 'Übungen', speed: 'Speed' };
 
@@ -90,9 +94,47 @@ function exerciseProgress() {
 
 const fmtKgN = (v) => fmtNum(v, v % 1 ? 1 : 0);
 
+function gameSections() {
+  const lv = levelOf(totalXp());
+  const path = seasonPath();
+  const first = parseIso(path.days[0].date);
+  const pad = (first.getDay() + 6) % 7;
+  const bs = badges();
+  const last30 = Array.from({ length: 30 }, (_, i) => isoDate(addDays(new Date(), i - 29)));
+  return `
+    <div class="section-head" id="saison"><h2>Saison-Weg</h2><span class="num muted small">${path.done} von ${path.total + 1} Tagen gut</span></div>
+    <div class="card">
+      <p class="small">Jeder Tag ist ein Feld bis zum Saisonstart am ${fmtShortDate(parseIso(S.settings.seasonStart))} Ein Tag zählt als gut, wenn du trainiert oder mindestens 60 % deiner Habits geschafft hast. Bei allen Habits ist er voll.</p>
+      <div class="season-grid">${'<i style="visibility:hidden"></i>'.repeat(pad % 7)}${path.days.map((x) => `<i class="${x.last ? 'goal' : x.state}${x.today ? ' now' : ''}" title="${fmtShortDate(parseIso(x.date))}"></i>`).join('')}</div>
+      <div class="season-legend small">
+        <span><i style="background:var(--accent)"></i>alle Habits</span>
+        <span><i style="background:color-mix(in srgb, var(--accent) 55%, transparent)"></i>guter Tag</span>
+        <span><i style="border:1px dashed var(--line-2)"></i>verpasst</span>
+        <span><i style="border:2px solid var(--accent);border-radius:50%"></i>Saisonstart</span>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Level</h2><span class="num muted small">${fmtNum(lv.xp)} XP</span></div>
+    <div class="card">
+      <ol class="plain small">${LEVELS.map((l, i) => `<li class="${i + 1 === lv.n ? 'ok' : ''}"><span>${i + 1}. ${esc(l.title)}${i + 1 === lv.n ? ' · du' : ''}</span><span class="num">${fmtNum(l.xp)} XP</span></li>`).join('')}</ol>
+      <p class="muted small">Punkte: Habit ${XP.habit}, perfekter Tag +${XP.perfect}, Workout ${XP.workout}, Lauf oder Fußball ${XP.run}, Recovery ${XP.recovery}, 7 Tage Serie +${XP.streak7}, 30 Tage +${XP.streak30}.</p>
+    </div>
+
+    <div class="section-head"><h2>Abzeichen</h2><span class="num muted small">${bs.filter((b) => b.got).length} von ${bs.length}</span></div>
+    <div class="badges">${bs.map((b) => `<div class="badge${b.got ? ' got' : ''}"><span class="badge-icon">${icon(b.got ? b.icon : 'lock', 18)}</span><span class="badge-title">${esc(b.title)}</span><span class="badge-text">${esc(b.text)}</span></div>`).join('')}</div>
+
+    <div class="section-head"><h2>Habits, letzte 30 Tage</h2></div>
+    <ul class="card hcal">${habitList().map((h) => `
+      <li>
+        <span>${esc(h.title)}</span>
+        <span class="num muted small">${streak(h)} Tage · Bestwert ${bestStreak(h)}</span>
+        <span class="hcal-dots">${last30.map((d) => `<i class="${habitDone(h, d) ? 'on' : ''}"></i>`).join('')}</span>
+      </li>`).join('')}</ul>`;
+}
+
 const KIND_LABEL = { run: 'Laufen', football: 'Fußball', recovery: 'Erholung', habit: 'Gewohnheit' };
 
-export async function renderProgress(root) {
+export async function renderProgress(root, params = {}) {
   const weeks = weeklyStats(8);
   const cur = weeks[weeks.length - 1];
   const prev = weeks[weeks.length - 2];
@@ -124,6 +166,8 @@ export async function renderProgress(root) {
       <div class="stat"><span class="muted small">Ø Schlaf 7 Tage</span><span class="num fig">${sleep7 != null ? `${fmtNum(sleep7, 1)} h` : '–'}</span><span class="muted small">Ziel 7 bis 9 h</span></div>
     </div>
     ${loadPrev && load > loadPrev * 1.3 ? '<p class="coach small"><span class="coach-mark">Coach</span>Diese Woche über 30 Prozent mehr Belastung als letzte. Achte auf Schlaf und plane einen lockeren Tag ein.</p>' : ''}
+
+    ${gameSections()}
 
     <div class="card">
       <div class="card-head"><h2>Voll geschafft pro Woche</h2><span class="muted small">in %</span></div>
@@ -205,7 +249,7 @@ export async function renderProgress(root) {
 let pendingImport = null;
 export function setPendingImport(r) { pendingImport = r; }
 
-export function renderMore(root) {
+export function renderMore(root, params = {}) {
   const p = S.plan;
   const n = S.nutrition;
   const appUrl = location.href.split('#')[0];
@@ -224,6 +268,17 @@ export function renderMore(root) {
       <div class="kv"><span>Stretching</span><span>${stretchExercises().length ? `${stretchExercises().length} Stretches${S.stretchLib ? ` · davon ${S.stretchLib.exercises.length} aus ${esc(S.stretchLib.source)}` : ''}` : 'noch keine'}</span></div>
       <label class="btn secondary">${icon('upload')} Stretches aus anderem Plan übernehmen<input type="file" accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" id="stretch-src" hidden></label>
       <p class="muted small">Zum Beispiel aus Phase 5 oder 8. Die Stretches kommen in die Einheit „Stretching“ und bleiben auch, wenn du eine neue Phase hochlädst.</p>
+    </div>
+
+    <div class="section-head" id="habit-manage"><h2>Habits</h2><span class="muted small">${habitList().length} aktiv</span></div>
+    <div class="card">
+      <ul class="plain manage">${allHabitsForSettings().map((h) => {
+        const on = !(S.settings.habitsOff || []).includes(h.id);
+        return `<li><span>${esc(h.title)} <span class="group">${h.own ? 'eigene' : esc(h.group)}</span></span>
+          <span class="row">${h.own ? `<button class="btn-icon sm ghost" data-act="hb-del" data-id="${esc(h.id)}" aria-label="${esc(h.title)} löschen">${icon('trash-2', 16)}</button>` : ''}
+          <input type="checkbox" class="switch" data-act="hb-on" data-id="${esc(h.id)}" ${on ? 'checked' : ''} aria-label="${esc(h.title)} aktiv"></span></li>`;
+      }).join('')}</ul>
+      <div class="row"><input class="grow hb-new" id="hb-new" maxlength="48" placeholder="Eigener Habit, z. B. 10 Minuten Mobility"><button class="btn secondary" data-act="hb-add">${icon('plus')} Dazu</button></div>
     </div>
 
     <div class="section-head"><h2>Profil</h2></div>
@@ -329,6 +384,17 @@ export function renderMore(root) {
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;
+    if (act === 'hb-on') { await setHabitActive(el.dataset.id, el.checked); const c = root.querySelector('#habit-manage .muted'); if (c) c.textContent = `${habitList().length} aktiv`; return; }
+    if (act === 'hb-del') { if (confirm('Diesen Habit löschen? Abgehakte Tage bleiben gespeichert.')) { await removeOwnHabit(el.dataset.id); renderMore(root); } return; }
+    if (act === 'hb-add') {
+      const v = root.querySelector('#hb-new').value.trim();
+      if (!v) { toast('Gib dem Habit einen Namen'); return; }
+      await addOwnHabit(v);
+      toast('Habit dazugekommen');
+      renderMore(root);
+      document.getElementById('habit-manage')?.scrollIntoView({ block: 'start' });
+      return;
+    }
     if (act === 'confirm-import') {
       const start = root.querySelector('#imp-start')?.value;
       await applyImport(pendingImport, { planStart: start });

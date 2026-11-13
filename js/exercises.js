@@ -128,6 +128,13 @@ export const P = {
   bndR: { x: 126, t: 10, l1: [30, -60], l2: [-40, -20], a1: [40, 60], a2: [-60, -80] },
   broadLoad: { x: 66, t: 48, l1: [80, -26], l2: [78, -28], a1: [-45, -30], a2: [-50, -35] },
   broadAir: { x: 94, t: 20, lift: 16, l1: [70, -10], l2: [64, -14], a1: [150, 160], a2: [145, 155] },
+  // Celebration and match poses for the game screens (front view where noted)
+  jubelRun: { t: 12, l1: [60, -10], l2: [-30, -70], a1: [-50, -20], a2: [60, 120], f2: 60 },
+  jubelJump: { t: -6, lift: 22, l1: [30, -30], l2: [-10, -40], a1: [120, 150], a2: [110, 140], f1: 40, f2: 40 },
+  jubelTurn: { t: -4, lift: 16, l1: [10, -20], l2: [-20, -30], a1: [80, 90], a2: [-80, -90], f1: 40, f2: 40 },
+  jubelLand: { t: -12, h: -16, l1: [36, 2], l2: [-36, -2], a1: [52, 40], a2: [-52, -40] },
+  freekick: { t: -4, l1: [16, 0], l2: [-16, 0], a1: [55, -40], a2: [-55, 40], props: [{ type: 'ball', dx: 34 }] },
+  headerJump: { t: 25, h: 20, lift: 24, l1: [-10, -60], l2: [-30, -80], a1: [-60, -90], a2: [-70, -100], f1: 30, f2: 30 },
   broadLand: { x: 120, t: 40, l1: [84, -20], l2: [82, -22], a1: [80, 90], a2: [76, 86] },
 };
 
@@ -329,3 +336,13 @@ export function needsWeight(name) {
   const e = lookup(name);
   return !!(e?.weight || WEIGHT_RE.test(name));
 }
+
+// Sequences for celebrations
+export const CELEBRATE = [
+  { pose: P.jubelRun, hold: 120, move: 380 },
+  { pose: P.jubelJump, hold: 80, move: 260 },
+  { pose: P.jubelTurn, hold: 60, move: 260 },
+  { pose: P.jubelLand, hold: 1600, move: 500 },
+];
+export const FREEKICK = [{ pose: P.freekick, hold: 1400, move: 600 }, { pose: P.jubelLand, hold: 1400, move: 600 }];
+export const HEADER = [{ pose: P.ready, hold: 300, move: 400 }, { pose: P.headerJump, hold: 400, move: 350 }, { pose: P.ready, hold: 600, move: 400 }];

@@ -54,7 +54,8 @@ export async function readPdf(file) {
 export async function applyImport(result, { planStart } = {}) {
   if (result.type === 'training') {
     const isNew = !S.plan || S.plan.id !== result.data.id;
-    const start = planStart || defaultStart();
+    // First plan: this week. Next phase: this week until Wednesday, otherwise next Monday
+    const start = planStart || (S.plan ? defaultStart() : isoDate(mondayOf()));
     if (isNew && S.plan) {
       // Keep the finished phase in the history
       S.settings.phases ||= [];

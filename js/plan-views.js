@@ -13,6 +13,9 @@ import { homeMessages, REASONS } from './coach.js';
 import { planDayIndex, shakePlan } from './food.js';
 import { figurePanel, mountPanels } from './exview.js';
 import { readPdf } from './importer.js';
+import { habitRowsMeta, dayScore, toggleHabit, levelOf, totalXp, seasonPath, streakLine, checkLevelUp, proteinEaten, ACTIVITY_HABIT, checkNewBadges, checkPerfectDay, XP, roleModel } from './habits.js';
+import { stage, animate } from './figure.js';
+import { CELEBRATE, FREEKICK, HEADER } from './exercises.js';
 import { setPendingImport } from './views.js';
 
 const KIND_SHORT = { warmup: 'Warm-up', warmup2: 'Cardio', plyo: 'Plyos', circuit: 'Zirkel', core: 'Core', finisher: 'Finisher', breathing: 'Atmung', power: 'Power', strength: 'Kraft', complex: 'Komplex', stretch: 'Stretching', main: 'Übungen', speed: 'Speed' };
@@ -127,6 +130,104 @@ function itemRow(a, date) {
 
 let homeSel = null;
 
+function gameCard() {
+  const lv = levelOf(totalXp());
+  const path = seasonPath();
+  const ti = path.days.findIndex((x) => x.today);
+  const from = Math.max(0, ti - 6);
+  const strip = path.days.slice(from, from + 21);
+  const streaks = streakLine(2);
+  return `
+  <a class="card game" href="#/fortschritt?saison=1">
+    <div class="game-top">
+      ${centerCircle({ size: 64, pct: lv.pct, value: String(lv.n), id: 'lv-ring' })}
+      <div class="game-text">
+        <span class="game-level">${esc(lv.title)}</span>
+        <span class="num muted small">${fmtNum(lv.xp)} XP${lv.next ? ` · noch ${fmtNum(lv.to - lv.xp)} bis ${esc(lv.next)}` : ''}</span>
+        ${streaks.length ? `<span class="game-streaks small">${icon('flame', 14)} ${streaks.join(' · ')}</span>` : ''}
+      </div>
+    </div>
+    <div class="season-strip" aria-label="Saison-Weg">${strip.map((x) => `<i class="${x.state}${x.today ? ' now' : ''}"></i>`).join('')}</div>
+    <span class="muted small">Saison-Weg: ${path.done} gute Tage, noch ${path.left} Tage bis zum Saisonstart</span>
+  </a>`;
+}
+
+function roleCard() {
+  const r = roleModel();
+  return `
+  <article class="card role">
+    <span class="coach-mark">Vorbild · Cristiano Ronaldo</span>
+    ${r.quote ? `<p class="role-quote">„${esc(r.quote.text)}“</p><span class="muted small">${esc(r.quote.by)}</span>`
+      : `<p>${esc(r.text)}</p><span class="muted small">Passt zu deinem Habit: ${esc(r.habit.title)}</span>`}
+  </article>`;
+}
+
+function habitRow(h, done, st, d) {
+  let control = '';
+  if (h.input === 'water') control = `<span class="hb-ctl"><span class="num small">${fmtNum((d.waterMl || 0) / 1000, 1)} L</span><button class="btn-icon sm" data-act="water" data-ml="500" aria-label="500 ml dazu">${icon('plus', 16)}</button></span>`;
+  else if (h.input === 'sleep') control = `<span class="hb-ctl">${stepper({ name: 'sleepH', value: d.sleepH ?? null, step: 0.5, min: 0, max: 14, unit: 'h', digits: 1 })}</span>`;
+  else if (h.input === 'protein') control = `<a class="hb-ctl num small" href="#/essen">${fmtNum(proteinEaten(d))} / ${S.nutrition?.protein || 155} g</a>`;
+  return `
+  <li class="hb${done ? ' done' : ''}">
+    <button class="check-btn${done ? ' on' : ''}" data-act="hb" data-id="${esc(h.id)}" aria-pressed="${done}" aria-label="${esc(h.title)} ${done ? 'erledigt' : 'abhaken'}">${icon('check', 16)}</button>
+    <span class="hb-main">
+      <span class="hb-title">${esc(h.title)}</span>
+      ${st >= 2 ? `<span class="hb-streak small">${icon('flame', 12)} <span class="num">${st}</span> Tage</span>` : ''}
+    </span>
+    ${control}
+  </li>`;
+}
+
+function xpPop(el, text) {
+  const r = el.getBoundingClientRect();
+  const pop = document.createElement('span');
+  pop.className = 'xp-pop num';
+  pop.textContent = text;
+  pop.style.left = `${r.left + r.width / 2}px`;
+  pop.style.top = `${r.top + window.scrollY}px`;
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+}
+
+const celebrations = [];
+function celebrate({ kicker, title, text, seq }) {
+  celebrations.push({ kicker, title, text, seq });
+  if (celebrations.length === 1) showNext();
+}
+function showNext() {
+  const c = celebrations[0];
+  if (!c) return;
+  const el = document.createElement('div');
+  el.className = 'levelup';
+  el.setAttribute('role', 'dialog');
+  el.innerHTML = `<div class="levelup-card">
+    <div class="levelup-fig">${stage()}</div>
+    <span class="muted small">${esc(c.kicker)}</span>
+    <h2>${esc(c.title)}</h2>
+    <p class="muted">${esc(c.text)}</p>
+    <button class="btn primary">Weiter</button>
+  </div>`;
+  el.onclick = (e) => {
+    if (!e.target.closest('button') && e.target !== el) return;
+    el.remove();
+    celebrations.shift();
+    showNext();
+  };
+  document.body.appendChild(el);
+  animate(el.querySelector('svg'), c.seq);
+}
+
+export function levelUp(lv) {
+  celebrate({ kicker: `Neues Level ${lv.n}`, title: lv.title, text: lv.next ? `Nächste Station: ${lv.next}.` : 'Höchstes Level. Legende.', seq: CELEBRATE });
+}
+
+async function checkCelebrations() {
+  const lv = await checkLevelUp();
+  if (lv) levelUp(lv);
+  for (const b of await checkNewBadges()) celebrate({ kicker: 'Neues Abzeichen', title: b.title, text: b.text, seq: FREEKICK });
+  if (await checkPerfectDay()) celebrate({ kicker: 'Perfekter Tag', title: 'Alle Habits geschafft', text: `+${XP.perfect} XP extra. Genau so sieht ein Profi-Tag aus.`, seq: HEADER });
+}
+
 function phaseCard(over) {
   if (!over) return '';
   const done = doneSessions();
@@ -180,6 +281,7 @@ export function renderHome(root) {
   const n = S.nutrition;
   const foodPlan = n ? shakePlan(n.days[planDayIndex()]?.meals || [], n.kcal || 3000) : null;
   const tomorrow = dayItems((todayI + 1) % 7).filter((a) => a.kind !== 'habit');
+  const score = dayScore(isoDate());
 
   root.innerHTML = `
   <section class="page">
@@ -187,6 +289,8 @@ export function renderHome(root) {
       <p class="muted">${esc(S.plan.title)} · Woche ${planWeek()} von ${S.plan.weeks}${over ? ' · abgeschlossen' : ''}${left > 0 ? ` · Saisonstart in ${left} Tagen` : ''}</p>
       <h1>${fmtLongDate(now)}</h1>
     </header>
+
+    ${gameCard()}
 
     ${phaseCard(over)}
 
@@ -222,24 +326,20 @@ export function renderHome(root) {
       </ul>
     </div>
 
-    <div class="section-head"><h2>Check-in heute</h2>${d.health ? `<span class="muted small">Health ${esc(d.health.time || '')}</span>` : ''}</div>
+    <div class="section-head" id="habits"><h2>Habits heute</h2><span class="num muted">${score.done} von ${score.total}</span></div>
+    <ul class="habits">
+      ${habitRowsMeta().map(({ h, done, streak: st }) => habitRow(h, done, st, d)).join('')}
+    </ul>
+    <a class="link" href="#/mehr?habits=1">Habits verwalten</a>
+
+    ${roleCard()}
+
+    <div class="section-head"><h2>Körper</h2>${d.health ? `<span class="muted small">Health ${esc(d.health.time || '')}</span>` : ''}</div>
     <div class="card checkin">
-      <div class="ci-row">
-        <span class="ci-label">${icon('moon')} Schlaf</span>
-        ${stepper({ name: 'sleepH', value: d.sleepH ?? null, step: 0.5, min: 0, max: 14, unit: 'h', digits: 1 })}
-      </div>
       <div class="ci-row">
         <span class="ci-label">${icon('activity')} Muskelkater</span>
         ${chips('soreness', [{ value: 0, label: 'Keiner' }, { value: 1, label: 'Leicht' }, { value: 2, label: 'Stark' }], d.soreness)}
       </div>
-      <div class="ci-row">
-        <span class="ci-label">${icon('droplet')} Wasser</span>
-        <span class="ci-water"><span class="num">${fmtNum((d.waterMl || 0) / 1000, 1)} L</span><button class="btn-icon sm" data-act="water" data-ml="500" aria-label="500 ml dazu">${icon('plus', 16)}</button></span>
-      </div>
-      <label class="ci-row check">
-        <span class="ci-label">${icon('pill')} Kreatin ${S.nutrition?.creatineG || 5} g</span>
-        <input type="checkbox" data-act="creatine" ${d.creatine ? 'checked' : ''}>
-      </label>
       <div class="ci-row">
         <span class="ci-label">${icon('scale')} Gewicht</span>
         ${stepper({ name: 'weight', value: d.weight ?? lastWeight(), step: 0.1, min: 30, max: 150, unit: 'kg', digits: 1 })}
@@ -257,6 +357,7 @@ export function renderHome(root) {
     </a>` : `<a class="card link-card" href="#/mehr"><span>Ernährungsplan hochladen</span>${icon('chevron-right', 20)}</a>`}
   </section>`;
 
+  checkCelebrations();
   const nextPdf = root.querySelector('#next-pdf');
   if (nextPdf) nextPdf.onchange = async () => {
     const f = nextPdf.files?.[0];
@@ -316,13 +417,22 @@ export function renderHome(root) {
     const el = ev.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;
+    if (act === 'hb') {
+      const on = await toggleHabit(el.dataset.id);
+      if (on) xpPop(el, '+10 XP');
+      const y = window.scrollY;
+      setTimeout(() => { renderHome(root); window.scrollTo(0, y); }, on ? 350 : 0);
+      return;
+    }
     if (act === 'start') await startWorkout(el.dataset.day);
     else if (act === 'resume') go('#/workout');
     else if (act === 'discard') {
       if (confirm('Unterbrochenes Workout verwerfen? Die Einträge dazu gehen verloren.')) { await discardWorkout(); renderHome(root); }
     } else if (act === 'habit') {
       const a = byId(el.dataset.id);
-      if (!isDone(a, date)) { await logActivity(a, { minutes: 15, date }); toast(`${a.title} abgehakt`); }
+      const hid = ACTIVITY_HABIT[a.id];
+      if (hid) { const on = await toggleHabit(hid, date); if (on) xpPop(el, '+10 XP'); }
+      else if (!isDone(a, date)) { await logActivity(a, { minutes: 15, date }); toast(`${a.title} abgehakt`); }
       renderHome(root);
     } else if (act === 'water') {
       d.waterMl = (d.waterMl || 0) + Number(el.dataset.ml);

@@ -2,6 +2,7 @@
 // recovery and the small daily habits. Built from the imported plan.
 import { S, saveSettings, saveSession, weekRange, planWeek, nextDay } from './state.js';
 import { uid, isoDate, addDays, mondayOf, sum } from './util.js';
+import { HABITS, habitDone, ACTIVITY_HABIT } from './habits.js';
 
 const nums = (s) => (String(s).match(/\d+(?:[.,]\d+)?/g) || []).map((x) => Number(x.replace(',', '.')));
 
@@ -224,6 +225,7 @@ export function sessionsOf(date, kinds) {
 }
 
 export function isDone(activity, date = isoDate()) {
+  if (activity.kind === 'habit' && ACTIVITY_HABIT[activity.id]) return habitDone(HABITS.find((h) => h.id === ACTIVITY_HABIT[activity.id]), date);
   if (activity.next) return S.sessions.some((s) => s.status === 'done' && s.date === date && (!s.kind || s.kind === 'workout'));
   return S.sessions.some((s) => s.status === 'done' && s.date === date && (s.activityId || s.dayId) === activity.id);
 }
@@ -272,8 +274,13 @@ export function goalCounts(date = new Date()) {
     else if (k === 'run' && (s.activityId === 'fs1' || s.activityId === 'fs2')) c.fitness++;
     else if (k === 'football') c.football++;
     else if (k === 'recovery' && s.activityId === 'rc1') c.recovery++;
-    else if (k === 'recovery' && s.activityId === 'stretch') c.tv++;
-    else if (k === 'habit') c[s.activityId] = (c[s.activityId] || 0) + 1;
+    // habits (ball, tv) are counted per day below
+  }
+  for (let d = new Date(start); d < end; d = addDays(d, 1)) {
+    const date = isoDate(d);
+    if (date > isoDate()) break;
+    if (habitDone(HABITS.find((h) => h.id === 'ball'), date)) c.ball++;
+    if (habitDone(HABITS.find((h) => h.id === 'stretch'), date)) c.tv++;
   }
   return c;
 }

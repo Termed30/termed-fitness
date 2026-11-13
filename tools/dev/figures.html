@@ -3,9 +3,10 @@
 <style>body{background:#0B1222;color:#F3EEE4;padding:12px;font:12px sans-serif}.g{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.c{background:#121B30;border-radius:8px;padding:4px}.c svg{width:100%;height:auto}.c p{margin:2px 4px}</style>
 <div class="g" id="g"></div>
 <script type="module">
-import { LIB, sequence } from '../../js/exercises.js';
+import { LIB, sequence, CELEBRATE, FREEKICK, HEADER } from '../../js/exercises.js';
 import { figureSvg, stage } from '../../js/figure.js';
 const g=document.getElementById('g'); const only=new URLSearchParams(location.search).get('q');
+for (const [k,seq] of Object.entries({CELEBRATE,FREEKICK,HEADER})) seq.forEach((st,i)=>{ const d=document.createElement('div'); d.className='c'; d.innerHTML=stage()+`<p>${k} #${i+1}</p>`; d.querySelector('.fx-fig').innerHTML=figureSvg(st.pose); g.appendChild(d); });
 for (const [k,e] of Object.entries(LIB)) { if(only && !k.includes(only)) continue;
   for (const [i,s] of sequence(e).entries()) { const d=document.createElement('div'); d.className='c'; d.innerHTML=stage()+`<p>${k} #${i+1}</p>`; d.querySelector('.fx-fig').innerHTML=figureSvg(s.pose); g.appendChild(d);} }
 </script>

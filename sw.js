@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Videos always come from the network.
-const VERSION = 'termed-v3';
+const VERSION = 'termed-v5';
 const SHELL = [
   './',
   'index.html',
@@ -7,7 +7,7 @@ const SHELL = [
   'css/app.css',
   'js/app.js', 'js/state.js', 'js/db.js', 'js/util.js', 'js/ui.js', 'js/icons.js', 'js/views.js', 'js/food.js',
   'js/workout.js', 'js/coach.js', 'js/photos.js', 'js/importer.js', 'js/pdf-text.js', 'js/docx-text.js', 'js/parse-training.js', 'js/parse-nutrition.js',
-  'js/figure.js', 'js/exercises.js', 'js/exview.js', 'js/activities.js', 'js/run.js', 'js/plan-views.js',
+  'js/figure.js', 'js/exercises.js', 'js/exview.js', 'js/activities.js', 'js/run.js', 'js/plan-views.js', 'js/habits.js',
   'vendor/pdfjs/pdf.min.mjs', 'vendor/pdfjs/pdf.worker.min.mjs',
   'vendor/fonts/instrument-sans-latin-400-normal.woff2', 'vendor/fonts/instrument-sans-latin-500-normal.woff2',
   'vendor/fonts/instrument-sans-latin-600-normal.woff2', 'vendor/fonts/instrument-sans-latin-ext-400-normal.woff2',

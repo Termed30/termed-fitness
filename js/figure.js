@@ -83,6 +83,8 @@ function drawProps({ pts, pose }) {
     } else if (type === 'ropes') {
       const end = 190;
       out.push(`<path class="fx-rope" d="M${f(pts.w1[0])},${f(pts.w1[1])} Q${f((pts.w1[0] + end) / 2)},${f(pts.w1[1] + (pr.wave || 10))} ${end},${GROUND - 2}"/>`);
+    } else if (type === 'ball') {
+      out.push(`<circle class="fx-ball" cx="${f(pts.hip[0] + (pr.dx || 30))}" cy="${GROUND - 5}" r="5"/>`);
     } else if (type === 'band') {
       out.push(`<path class="fx-rope" d="M${f(pts.k1[0])},${f(pts.k1[1])} L${f(pts.k2[0])},${f(pts.k2[1])}"/>`);
     }

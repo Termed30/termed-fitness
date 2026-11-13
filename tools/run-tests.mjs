@@ -325,3 +325,44 @@ test('phase 8 (Word) is read, including stretches', { skip: !fs.existsSync(P8) }
   assert.ok(stretches.includes('Swiss Ball Pec Stretch'));
   assert.ok(p.extras.some((x) => x.type === 'fitness'));
 });
+
+// ---- Habits and game
+import { HABITS, habitDone, streak, bestStreak, totalXp, levelOf, badges, seasonPath, dayScore, LEVELS } from '../js/habits.js';
+
+test('habits: streaks, points, levels, badges, season path', () => {
+  const t = new Date();
+  const iso = (n) => { const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  S.plan = null;
+  S.nutrition = { protein: 155, days: [] };
+  S.photos = [];
+  S.sessions = [];
+  S.settings = { planStart: iso(9), seasonStart: iso(-30), habitsOff: [], habitsOwn: [] };
+  S.daily = {};
+  // 8 days of creatine in a row up to yesterday, reading only yesterday, today nothing yet
+  for (let i = 1; i <= 8; i++) S.daily[iso(i)] = { date: iso(i), creatine: true, waterMl: 3200, sleepH: 8, habits: { read: i === 1 } };
+  const crea = HABITS.find((h) => h.id === 'creatine');
+  const read = HABITS.find((h) => h.id === 'read');
+  assert.equal(habitDone(crea, iso(1)), true);
+  assert.equal(streak(crea), 8, 'open today does not break the streak');
+  assert.equal(streak(read), 1);
+  assert.equal(bestStreak(crea), 8);
+  // Manual tick wins, and water from the input counts automatically
+  assert.equal(habitDone(HABITS.find((h) => h.id === 'water'), iso(2)), true);
+  const xp = totalXp();
+  // 8 days x (creatine, water, sleep) = 24 habits, 1 read, +3 streak-7 bonuses (creatine, water, sleep)
+  assert.equal(xp, 25 * 10 + 3 * 50);
+  const lv = levelOf(xp);
+  assert.equal(lv.title, LEVELS[1].title, '400 XP is exactly level 2');
+  assert.equal(levelOf(2600).title, 'Stammspieler');
+  assert.equal(levelOf(999999).next, null);
+  const b = Object.fromEntries(badges().map((x) => [x.id, x.got]));
+  assert.equal(b.s7, true);
+  assert.equal(b.first, false);
+  const path = seasonPath();
+  assert.equal(path.days.length, 9 + 30 + 1);
+  assert.ok(path.days.find((d) => d.today));
+  assert.equal(path.days[path.days.length - 1].state, 'future');
+  // Meal prep only on Wednesday and Sunday
+  const mp = dayScore(iso(0)).list.some((h) => h.id === 'mealprep');
+  assert.equal(mp, [2, 6].includes((t.getDay() + 6) % 7));
+});

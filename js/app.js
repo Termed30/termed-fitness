@@ -64,11 +64,13 @@ async function route() {
       else renderTraining(view, params);
       break;
     case 'essen': renderFood(view); break;
-    case 'fortschritt': await renderProgress(view); break;
-    case 'mehr': renderMore(view); break;
+    case 'fortschritt': await renderProgress(view, params); break;
+    case 'mehr': renderMore(view, params); break;
     default: renderHome(view);
   }
   if (!inWorkout) window.scrollTo(0, 0);
+  const anchor = params.habits ? 'habit-manage' : params.saison ? 'saison' : null;
+  if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: 'start' });
   void path;
 }
 

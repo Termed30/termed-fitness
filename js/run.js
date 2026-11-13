@@ -1,7 +1,7 @@
 // Guided sessions outside the gym workouts: runs, football, recovery, habits.
 import { planWeek } from './state.js';
 import { byId, guidance, minutesLabel, logActivity, catalog } from './activities.js';
-import { esc, fmtClock, vimeoEmbed } from './util.js';
+import { esc, fmtClock, vimeoEmbed, isoDate } from './util.js';
 import { icon } from './icons.js';
 import { go, toast, centerCircle, setCircle, chips, keepAwake, beep, unlockAudio } from './ui.js';
 
@@ -276,7 +276,14 @@ function bind(root, a, screen) {
         break;
       case 'log-only':
         run = null;
-        if (a.kind === 'habit') { await logActivity(a, { minutes: 15 }); toast(`${a.title} eingetragen`); go('#/heute'); break; }
+        if (a.kind === 'habit') {
+          const { toggleHabit, habitDone, HABITS, ACTIVITY_HABIT } = await import('./habits.js');
+          const h = HABITS.find((x) => x.id === ACTIVITY_HABIT[a.id]);
+          if (h && !habitDone(h, isoDate())) await toggleHabit(h.id);
+          toast(`${a.title} abgehakt`);
+          go('#/heute');
+          break;
+        }
         render(a, 'finish');
         break;
       case 'rep':
